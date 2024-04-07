@@ -5,3 +5,4 @@
 .venv\pyvenv.cfg
 __pycache__
 templates
+static\styles
