@@ -2,10 +2,11 @@ from fastapi import FastAPI, Depends, HTTPException, Header
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from fastapi import FastAPI
-from model import User
+from model import User, Organization, UserOrganization
 from auth import get_current_user, create_access_token
 from starlette import status
 from pydantic import EmailStr, BaseModel
+import orgauth
 import auth
 from database import *
 from typing import Annotated
@@ -18,6 +19,7 @@ from datetime import timedelta
 # FastAPI app instance
 app = FastAPI()
 app.include_router(auth.router)
+app.include_router(orgauth.router)
 
 
 # Create tables
@@ -76,3 +78,21 @@ async def list_All_Users(db: db_dependency):
     user_list = [i for i in users]
 
     return user_list
+
+
+@app.get("/allorg")
+async def list_All_Organizations(db: db_dependency):
+    # Query all records from table 'organization'
+    orgs = db.query(Organization)
+    orgs_list = [i for i in orgs]
+
+    return orgs_list
+
+
+@app.get("/allassociation")
+async def list_All_Association(db: db_dependency):
+    # Query all records from table 'users'
+    Assoc = db.query(UserOrganization)
+    Assoc_list = [i for i in Assoc]
+
+    return Assoc_list

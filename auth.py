@@ -1,5 +1,5 @@
 from datetime import timedelta, datetime
-from typing import Dict, List, Annotated, Literal
+from typing import Dict, Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
@@ -10,9 +10,6 @@ from model import User
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from jose import jwt, JWTError
-
-# from fastapi.staticfiles import StaticFiles
-# from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 
@@ -35,6 +32,7 @@ conf = ConnectionConfig(
 
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl="auth/token")
+
 
 class UserResponse(BaseModel):
     username: str
@@ -283,7 +281,9 @@ async def email_forgot_password(
             if user:
                 password = bcrypt_context.hash(NewPass.ConfirmNewPassword)
                 if bcrypt_context.verify(NewPass.NewPassword, password):
-                    db.query(User).filter(User.username == username).update({"hashed_password": password})
+                    db.query(User).filter(User.username == username).update(
+                        {"hashed_password": password}
+                    )
                 db.commit()
             else:
                 raise HTTPException(
@@ -293,5 +293,5 @@ async def email_forgot_password(
         raise HTTPException(status_code=status.HTTP_402_UNAUTHORIZED, detail="JWTError")
     return JSONResponse(
         status_code=200,
-        content={"token": token, "message": "You account is verified"},
+        content={"token": token, "message": "Password is resetted"},
     )
