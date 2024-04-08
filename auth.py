@@ -105,12 +105,36 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
         if username is None or user_id is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Could not validate user.",
+                detail="UserId and Username can not be null.",
             )
         return {"id": user_id, "username": username}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Could not validate user. {e}",
+        )
+
+
+@router.post("/revalidate-token")
+async def revalidate_token(token: str = Depends(oauth2_bearer)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username = payload.get("sub")
+        user_id = payload.get("id")
+
+        if not username or not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="UserId and Username can not be null.",
+            )
+
+        access_token_expires = timedelta(minutes=30)
+        new_token = create_access_token(username, user_id, access_token_expires)
+
+        return {"access_token": new_token, "token_type": "bearer"}
     except JWTError:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate user."
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token"
         )
 
 
@@ -174,7 +198,7 @@ async def register_user(
         username = create_user_model.username
         email = create_user_model.email
 
-        token = create_access_token(username, id, timedelta(minutes=20))
+        token = create_access_token(username, id, timedelta(minutes=60))
         link = f"http://127.0.0.1:8000/auth/verify?token={token}"
         email_data = EmailSchema(email=str(email))
         await send_mail(email_data, username, link, "Verification")
@@ -204,7 +228,6 @@ async def register_user(
 async def verify(request: Request, db: db_dependency, token: str):
     try:
         username, user_id = token_decode(token)
-        # username, user_id = "Susahnt123450",1
 
         if username is None or user_id is None:
             raise HTTPException(

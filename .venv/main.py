@@ -55,11 +55,11 @@ db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(get_current_user)]
 
 
-@app.get("/", status_code=status.HTTP_200_OK)
-async def login(user: user_dependency, db: db_dependency):
-    if user is None:
-        raise HTTPException(status_code=401, detail="Authentication Failed")
-    return {"User": user}
+# @app.get("/", status_code=status.HTTP_200_OK)
+# async def login(user: user_dependency, db: db_dependency):
+#     if user is None:
+#         raise HTTPException(status_code=401, detail="Authentication Failed")
+#     return {"User": user}
 
 
 @app.post("/token-refresh")
@@ -71,7 +71,7 @@ async def refresh_token(user: user_dependency):
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@app.get("/alluser")
+@app.get("/all/user")
 async def list_All_Users(db: db_dependency):
     # Query all records from table 'users'
     users = db.query(User)
@@ -80,7 +80,7 @@ async def list_All_Users(db: db_dependency):
     return user_list
 
 
-@app.get("/allorg")
+@app.get("/all/org")
 async def list_All_Organizations(db: db_dependency):
     # Query all records from table 'organization'
     orgs = db.query(Organization)
@@ -89,10 +89,26 @@ async def list_All_Organizations(db: db_dependency):
     return orgs_list
 
 
-@app.get("/allassociation")
+@app.get("/all/association")
 async def list_All_Association(db: db_dependency):
     # Query all records from table 'users'
     Assoc = db.query(UserOrganization)
     Assoc_list = [i for i in Assoc]
 
     return Assoc_list
+
+
+@app.get("/all/user/delete")
+async def delete_All_User(db: db_dependency):
+
+    Assoc = db.query(Organization).delete()
+    db.commit()
+    return {"response": f"{Assoc} user deleted"}
+
+
+@app.get("/all/org/delete")
+async def delete_All_Organization(db: db_dependency):
+    Org = db.query(Organization).delete()
+    Assoc = db.query(UserOrganization).delete()
+    db.commit()
+    return {"response": f"{Org} org and {Assoc}assoc deleted"}
