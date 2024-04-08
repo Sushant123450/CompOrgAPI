@@ -15,8 +15,6 @@ from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-# templates = Jinja2Templates(directory="templates")
-
 SECRET_KEY = "98c49823694c2n34nx23423m4234n02384207394n023049"
 ALGORITHM = "HS256"
 
@@ -44,10 +42,6 @@ class UserResponse(BaseModel):
 class NewPasswordRequest(BaseModel):
     NewPassword: str
     ConfirmNewPassword: str
-
-
-class EmailSchema(BaseModel):
-    email: str
 
 
 class ForgotPasswordRequest(BaseModel):
@@ -138,7 +132,7 @@ async def revalidate_token(token: str = Depends(oauth2_bearer)):
         )
 
 
-async def send_mail(email: EmailSchema, username: Column[str], link: str, type: str):
+async def send_mail(email: EmailStr, username: Column[str], link: str, type: str):
     if type == "Verification":
         template = f"""
             <html><head>
@@ -150,12 +144,12 @@ async def send_mail(email: EmailSchema, username: Column[str], link: str, type: 
         """
         message = MessageSchema(
             subject="CompOrgAPI Verification",
-            recipients=[email.email],
+            recipients=[email],
             body=template,
             subtype=MessageType.html,
         )
 
-    if type == "Forgot":
+    elif type == "Forgot":
         template = f"""
             <html><head>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
@@ -166,7 +160,22 @@ async def send_mail(email: EmailSchema, username: Column[str], link: str, type: 
         """
         message = MessageSchema(
             subject="CompOrgAPI Account Forgot Password",
-            recipients=[email.email],
+            recipients=[email],
+            body=template,
+            subtype=MessageType.html,
+        )
+    elif type == "Invite":
+        template = f"""
+            <html><head>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+            </head><body>
+        <p>Hello {username}</p><p> Click on button to join organization</p>  
+        <a href="{link}"><button type="button" class="btn btn-primary btn-lg">Join Now</button></a></br>
+        </body></html>
+        """
+        message = MessageSchema(
+            subject="Join organization Today",
+            recipients=[email],
             body=template,
             subtype=MessageType.html,
         )
@@ -200,8 +209,8 @@ async def register_user(
 
         token = create_access_token(username, id, timedelta(minutes=60))
         link = f"http://127.0.0.1:8000/auth/verify?token={token}"
-        email_data = EmailSchema(email=str(email))
-        await send_mail(email_data, username, link, "Verification")
+
+        await send_mail(str(email), username, link, "Verification")
 
     else:
         return JSONResponse(
@@ -279,8 +288,8 @@ async def forgot_password(
 
     token = create_access_token(result.username, result.id, timedelta(minutes=20))
     link = f"http://127.0.0.1:8000/auth/forgot-pass?token={token}"
-    email_data = EmailSchema(email=User_email)
-    await send_mail(email_data, result.username, link, "Forgot")
+
+    await send_mail(str(User_email), result.username, link, "Forgot")
     return {"msg": "Email has sent  to your registered mail id"}
 
 

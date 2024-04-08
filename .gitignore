@@ -1,10 +1,11 @@
 
-.venv\Include
-.venv\Lib
-.venv\Scripts
-.venv\pyvenv.cfg
+.venv/Include/
+.venv/Lib/
+.venv/Scripts
 __pycache__
 templates
 static
 test.pyvenv
 data.db
+.venv/pyvenv.cfg
+test.py

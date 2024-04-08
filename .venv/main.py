@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, Header
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from fastapi import FastAPI
-from model import User, Organization, UserOrganization
+from model import User, Organization, UserOrganization, Invitation
 from auth import get_current_user, create_access_token
 from starlette import status
 from pydantic import EmailStr, BaseModel
@@ -112,3 +112,10 @@ async def delete_All_Organization(db: db_dependency):
     Assoc = db.query(UserOrganization).delete()
     db.commit()
     return {"response": f"{Org} org and {Assoc}assoc deleted"}
+
+
+@app.get("/all/invite/delete")
+async def delete_All_Invitation(db: db_dependency):
+    Invites = db.query(Invitation).delete()
+    db.commit()
+    return {"response": f"{Invites} invites deleted"}

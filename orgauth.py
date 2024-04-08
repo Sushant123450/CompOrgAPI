@@ -1,6 +1,6 @@
-from auth import get_current_user, get_db
+from auth import get_current_user, get_db, send_mail
 from fastapi.responses import JSONResponse
-from model import User, Organization, UserOrganization
+from model import User, Organization, UserOrganization, Invitation
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from sqlalchemy import Column, Boolean
@@ -10,6 +10,7 @@ from pydantic import BaseModel, EmailStr
 from datetime import timedelta, datetime
 from typing import Dict, List, Annotated, Literal, Optional, Union
 from fastapi import APIRouter, Depends, HTTPException, Request
+from secrets import token_bytes
 
 
 router = APIRouter(prefix="/orgauth", tags=["orgauth"])
@@ -32,6 +33,11 @@ class User_detail(BaseModel):
     id: int
     username: str
     email: str
+
+
+class InvitationDetails(BaseModel):
+    email: EmailStr
+    org_id: int
 
 
 def is_Owner(user_id: int, org_id: int, db: db_dependency):
@@ -64,7 +70,15 @@ def is_Admin(user_id: int, org_id: int, db: db_dependency):
         return False
 
 
-@router.post("/register")
+def generate_random_token(token_length=32):
+    """
+    Generates a random token of specified length (default 32 bytes).
+    """
+    random_bytes = token_bytes(token_length)
+    return random_bytes.hex()
+
+
+@router.post("/org/register")
 def register_organization(
     request: Request,
     organization: RegisterOrganization,
@@ -150,34 +164,26 @@ def update_organization(
     db: db_dependency,
 ):
     try:
-        db_org = db.query(Organization).filter(Organization.id == org_id).first()
-
-        if not db_org:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Organization not found",
-            )
-
-        if db_org.owner_id != user["id"]:
+        if is_Owner(user["id"], org_id, db):
+            if organization.name is not None and organization.description is not None:
+                db_org = (
+                    db.query(Organization)
+                    .filter(Organization.id == org_id)
+                    .update(
+                        {
+                            "description": organization.description,
+                            "name": organization.name,
+                        }
+                    )
+                )
+            db.commit()
+            return JSONResponse(status_code=status.HTTP_200_OK, content="Updation Done")
+        else:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You are not authorized to update this organization",
             )
 
-        if organization.name is not None and organization.description is not None:
-            db_org = (
-                db.query(Organization)
-                .filter(Organization.id == org_id)
-                .update(
-                    {
-                        "description": organization.description,
-                        "name": organization.name,
-                    }
-                )
-            )
-        db.commit()
-
-        return JSONResponse(status_code=status.HTTP_200_OK, content="Updation Done")
     except:
         db.rollback()
         raise HTTPException(
@@ -193,26 +199,20 @@ def delete_organization(
     user: user_dependency,
 ):
     try:
-        db_org = db.query(Organization).filter(Organization.id == org_id).first()
-        if not db_org:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Organization not found",
+        if is_Owner(user["id"], org_id, db):
+            Org = db.query(Organization).filter(Organization.id == org_id).delete()
+            Assoc = (
+                db.query(UserOrganization)
+                .filter(UserOrganization.org_id == org_id)
+                .delete()
             )
-
-        if db_org.owner_id != user["id"]:
+            db.commit()
+            return {"response": f"{Org} org and {Assoc} Assoc deleted"}
+        else:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You are not authorized to update this organization",
             )
-        Org = db.query(Organization).filter(Organization.id == org_id).delete()
-        Assoc = (
-            db.query(UserOrganization)
-            .filter(UserOrganization.org_id == org_id)
-            .delete()
-        )
-        db.commit()
-        return {"response": f"{Org} org and {Assoc} Assoc deleted"}
 
     except:
         db.rollback()
@@ -222,7 +222,7 @@ def delete_organization(
         )
 
 
-@router.post("/member/add")
+@router.post("/org/{org_id}/member/add")
 def add_member_to_org(
     member_id: int,
     org_id: int,
@@ -264,7 +264,7 @@ def add_member_to_org(
     )
 
 
-@router.post("/member/remove")
+@router.post("/org/{org_id}/member/delete")
 def remove_member_from_org(
     member_id: int,
     org_id: int,
@@ -299,10 +299,6 @@ def remove_member_from_org(
 
 @router.get("/org/{org_id}/members", response_model=List[User_detail])
 async def all_member_of_organization(org_id: int, db: db_dependency):
-    # list_of_members_id = db.query(UserOrganization).filter(UserOrganization.org_id == org_id).all()
-    # all_member_details = []
-    # for i in list_of_members_id:
-    #     member = db.query(User).filter(User.id == i.id).
     organization = db.query(Organization).filter(Organization.id == org_id).first()
 
     if organization is None:
@@ -312,3 +308,123 @@ async def all_member_of_organization(org_id: int, db: db_dependency):
 
     members = organization.users
     return members
+
+
+@router.post("/org/invite")
+async def send_invitation(
+    invitation: InvitationDetails,
+    db: db_dependency,
+    user: user_dependency,
+):
+    """
+    Send an invitation email to a user.
+
+    This endpoint allows the owner or an administrator of an organization to send an invitation email to a user.
+
+    **Parameters**
+
+    * `invitation`: The invitation object containing the email of the user to invite and the ID of the organization to invite the user to.
+    * `db`: The database session.
+    * `user`: The current user.
+
+    **Returns**
+
+    A JSON response with a message indicating that the invitation was sent.
+
+    **Raises**
+
+    * `HTTPException`: If the user is not authorized to send invitations or the organization does not exist.
+    """
+    if is_Owner(user["id"], invitation.org_id, db) or is_Admin(
+        user["id"], invitation.org_id, db
+    ):
+        organization = (
+            db.query(Organization).filter(Organization.id == invitation.org_id).first()
+        )
+        user_detail = db.query(User).filter(User.email == (invitation.email)).first()
+        if organization is not None and user_detail is not None:
+            invite_token = generate_random_token()
+            invite_data = Invitation(
+                email=invitation.email,
+                org_id=invitation.org_id,
+                invite_token=invite_token,
+            )
+            db.add(invite_data)
+            db.commit()
+            db.refresh(invite_data)
+            link = (
+                f"http://127.0.0.1:8000/orgauth/member/accept_invitation/{invite_token}"
+            )
+            await send_mail(invitation.email, user_detail.username, link, "Invitation")
+
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Organization or User does not exist",
+            )
+
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not authorized to send invitations",
+        )
+    return JSONResponse(status_code=200, content={"message": "Invitation sent"})
+
+
+@router.get("/member/accept_invitation/{invite_token}")
+async def accept_invitation(
+    invite_token: str,
+    db: db_dependency,
+    user: user_dependency,
+):
+    """
+    Accept an invitation.
+
+    This endpoint allows a user to accept an invitation to an organization.
+
+    **Parameters**
+
+    * `invitation_id`: The ID of the invitation to accept.
+    * `db`: The database session.
+    * `user`: The current user.
+
+    **Returns**
+
+    A JSON response with a message indicating that the invitation was accepted.
+
+    **Raises**
+
+    * `HTTPException`: If the invitation does not exist or the user is not authorized to accept the invitation.
+    """
+    invitation = db.query(Invitation).filter(Invitation.token == invite_token).first()
+    user_data = db.query(User).filter(User.id == user["id"]).first()
+    if invitation is not None:
+        if user_data is not None:
+            if str(user_data.email) == str(invitation.email):
+                organization = (
+                    db.query(Organization)
+                    .filter(Organization.id == invitation.org_id)
+                    .first()
+                )
+                if organization is not None:
+                    organization.add_user(user_data, db)
+                    db.delete(invitation)
+                    db.commit()
+                    return JSONResponse(
+                        status_code=200, content={"message": "Invitation accepted"}
+                    )
+                else:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail="Organization does not exist",
+                    )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You are not authorized to accept this invitation",
+            )
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invitation does not exist",
+        )

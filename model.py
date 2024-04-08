@@ -53,3 +53,12 @@ class Organization(Base):
         if user_organization:
             db.delete(user_organization)
             db.commit()
+
+
+class Invitation(Base):
+    __tablename__ = "invitations"
+    id = Column(Integer, primary_key=True)
+    email = Column(String(100))
+    org_id = Column(Integer, ForeignKey("organizations.id"))
+    invite_token = Column(String, unique=True)
+    is_accepted = Column(Boolean, default=False)
