@@ -38,6 +38,8 @@ oauth2_bearer = OAuth2PasswordBearer(
     tokenUrl="auth/token"
 )  # Holds the current Logined Users Details to be used as dependency
 
+link_prefix = "http://127.0.0.1:8000/"
+
 
 class UserResponse(BaseModel):
     username: str
@@ -320,7 +322,7 @@ async def register_user(
         email = create_user_model.email
 
         token = create_access_token(username, id, timedelta(minutes=60))
-        link = f"http://127.0.0.1:8000/auth/verify?token={token}"
+        link = link_prefix + f"auth/verify?token={token}"
 
         await send_mail(str(email), username, link, "Verification")
 
@@ -447,7 +449,7 @@ async def forgot_password(
         return {"msg": "No such email or username exists"}
 
     token = create_access_token(result.username, result.id, timedelta(minutes=20))
-    link = f"http://127.0.0.1:8000/auth/forgot-pass?token={token}"
+    link = link_prefix + f"auth/forgot-pass?token={token}"
 
     await send_mail(str(User_email), result.username, link, "Forgot")
     return {"msg": "Email has sent  to your registered mail id"}

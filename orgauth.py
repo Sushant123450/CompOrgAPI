@@ -1,4 +1,4 @@
-from auth import get_current_user, get_db, send_mail
+from auth import get_current_user, get_db, send_mail, link_prefix
 from fastapi.responses import JSONResponse
 from model import User, Organization, UserOrganization, Invitation
 from passlib.context import CryptContext
@@ -501,9 +501,7 @@ async def send_invitation(
             db.add(invite_data)
             db.commit()
             db.refresh(invite_data)
-            link = (
-                f"http://127.0.0.1:8000/orgauth/member/accept_invitation/{invite_token}"
-            )
+            link = link_prefix + f"orgauth/member/accept_invitation/{invite_token}"
             await send_mail(invitation.email, user_detail.username, link, "Invite")
 
         else:
