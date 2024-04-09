@@ -41,6 +41,20 @@ class InvitationDetails(BaseModel):
 
 
 def is_Owner(user_id: int, org_id: int, db: db_dependency):
+    """
+    Check if the given user is the owner of the organization with the given ID.
+
+    Parameters:
+        user_id (int): The ID of the user.
+        org_id (int): The ID of the organization.
+        db (db_dependency): The database session.
+
+    Returns:
+        bool: True if the user is the owner, False otherwise.
+
+    Raises:
+        HTTPException: If the organization with the given ID does not exist.
+    """
     query = db.query(Organization).filter(Organization.id == org_id).first()
     if query is None:
         raise HTTPException(
@@ -54,6 +68,20 @@ def is_Owner(user_id: int, org_id: int, db: db_dependency):
 
 
 def is_Admin(user_id: int, org_id: int, db: db_dependency):
+    """
+    Check if the user with the given user_id is an admin of the organization with the given org_id.
+
+    Parameters:
+        user_id (int): The ID of the user.
+        org_id (int): The ID of the organization.
+        db (db_dependency): The database session.
+
+    Returns:
+        bool: True if the user is an admin, False otherwise.
+
+    Raises:
+        HTTPException: If the organization or user does not exist.
+    """
     query = (
         db.query(UserOrganization)
         .filter(UserOrganization.org_id == org_id, UserOrganization.user_id == user_id)
@@ -73,6 +101,12 @@ def is_Admin(user_id: int, org_id: int, db: db_dependency):
 def generate_random_token(token_length=32):
     """
     Generates a random token of specified length (default 32 bytes).
+
+    Args:
+        token_length (int, optional): The length of the token to generate. Defaults to 32.
+
+    Returns:
+        str: The generated random token.
     """
     random_bytes = token_bytes(token_length)
     return random_bytes.hex()
@@ -85,6 +119,23 @@ def register_organization(
     user: user_dependency,
     db: db_dependency,
 ):
+    """
+    Register a new organization.
+
+    This endpoint allows a user to register a new organization.
+
+    Parameters:
+        request (Request): The request object.
+        organization (RegisterOrganization): The organization details.
+        user (user_dependency): The current user.
+        db (db_dependency): The database session.
+
+    Returns:
+        JSONResponse: The registered organization.
+
+    Raises:
+        HTTPException: If the organization already exists or an error occurs.
+    """
     try:
         db_org = (
             db.query(Organization)
@@ -128,7 +179,15 @@ def register_organization(
 
 @router.get("/org")
 async def list_All_Organizations(db: db_dependency):
-    # Query all records from table 'organization'
+    """
+    Returns a list of all organizations in the database.
+
+    Parameters:
+        db (db_dependency): The database session.
+
+    Returns:
+        List[Organization]: A list of all organizations in the database.
+    """
     orgs = db.query(Organization)
     orgs_list = [i for i in orgs]
     return orgs_list
@@ -136,9 +195,22 @@ async def list_All_Organizations(db: db_dependency):
 
 @router.get("/org/{org_id}")
 def get_organization_details(request: Request, db: db_dependency, org_id: int):
+    """
+    Returns the details of an organization with the given ID.
+
+    Parameters:
+        request (Request): The request object.
+        db (db_dependency): The database session.
+        org_id (int): The ID of the organization.
+
+    Returns:
+        JSONResponse: The organization details.
+
+    Raises:
+        HTTPException: If the organization with the given ID does not exist.
+    """
     try:
         db_org = db.query(Organization).filter(Organization.id == org_id).first()
-
         return JSONResponse(
             status_code=status.HTTP_201_CREATED,
             content={
@@ -163,6 +235,23 @@ def update_organization(
     user: user_dependency,
     db: db_dependency,
 ):
+    """
+    Update an organization.
+
+    This function updates an organization with the given details.
+
+    Parameters:
+        org_id (int): The ID of the organization to update.
+        organization (UpdateOrganization): The details to update the organization with.
+        user (user_dependency): The current user.
+        db (db_dependency): The database session.
+
+    Returns:
+        JSONResponse: A response indicating that the organization was updated.
+
+    Raises:
+        HTTPException: If the user is not authorized to update the organization, or if the organization does not exist.
+    """
     try:
         if is_Owner(user["id"], org_id, db):
             if organization.name is not None and organization.description is not None:
@@ -194,10 +283,24 @@ def update_organization(
 
 @router.post("/org/{org_id}/delete")
 def delete_organization(
-    db: db_dependency,
     org_id: int,
     user: user_dependency,
+    db: db_dependency,
 ):
+    """Deletes an organization and all its associated data.
+
+    Args:
+        db (db_dependency): The database session.
+        org_id (int): The ID of the organization to delete.
+        user (user_dependency): The current user.
+
+    Raises:
+        HTTPException: If the user is not authorized to delete the organization.
+
+    Returns:
+        JSONResponse: A response indicating that the organization was deleted.
+    """
+
     try:
         if is_Owner(user["id"], org_id, db):
             Org = db.query(Organization).filter(Organization.id == org_id).delete()
@@ -230,6 +333,24 @@ def add_member_to_org(
     user: user_dependency,
     Admin: bool = False,
 ):
+    """
+    Adds a member to an organization.
+
+    This function adds a member with the given member_id to the organization with the given org_id.
+
+    Parameters:
+        member_id (int): The ID of the member to add.
+        org_id (int): The ID of the organization to add the member to.
+        db (db_dependency): The database session.
+        user (user_dependency): The current user.
+        Admin (bool, optional): Whether the member is an administrator of the organization. Defaults to False.
+
+    Returns:
+        JSONResponse: A response indicating that the member was added to the organization.
+
+    Raises:
+        HTTPException: If the user is not authorized to add the member, or if the member or organization does not exist.
+    """
     if is_Owner(user["id"], org_id, db):
         organization = db.query(Organization).filter(Organization.id == org_id).first()
         if organization is not None:
@@ -271,6 +392,24 @@ def remove_member_from_org(
     db: db_dependency,
     user: user_dependency,
 ):
+    """
+    Removes a member from an organization.
+
+    This function removes a member with the given member_id from the organization with the given org_id.
+
+    Parameters:
+        member_id (int): The ID of the member to remove.
+        org_id (int): The ID of the organization to remove the member from.
+        db (db_dependency): The database session.
+        user (user_dependency): The current user.
+
+    Returns:
+        JSONResponse: A response indicating that the member was removed from the organization.
+
+    Raises:
+        HTTPException: If the user is not authorized to remove the member, or if the member or organization does not exist.
+    """
+
     organization = db.query(Organization).filter(Organization.id == org_id).first()
     if organization is not None:
         if is_Owner(user["id"], org_id, db):
@@ -299,8 +438,20 @@ def remove_member_from_org(
 
 @router.get("/org/{org_id}/members", response_model=List[User_detail])
 async def all_member_of_organization(org_id: int, db: db_dependency):
-    organization = db.query(Organization).filter(Organization.id == org_id).first()
+    """
+    Returns a list of all members of an organization.
 
+    Parameters:
+        org_id (int): The ID of the organization.
+        db (db_dependency): The database session.
+
+    Returns:
+        List[User_detail]: A list of all members of the organization.
+
+    Raises:
+        HTTPException: If the organization does not exist.
+    """
+    organization = db.query(Organization).filter(Organization.id == org_id).first()
     if organization is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found"
@@ -321,20 +472,18 @@ async def send_invitation(
 
     This endpoint allows the owner or an administrator of an organization to send an invitation email to a user.
 
-    **Parameters**
+    Parameters:
+        invitation (InvitationDetails): The invitation object containing the email of the user to invite and the ID of the organization to invite the user to.
+        db (db_dependency): The database session.
+        user (user_dependency): The current user.
 
-    * `invitation`: The invitation object containing the email of the user to invite and the ID of the organization to invite the user to.
-    * `db`: The database session.
-    * `user`: The current user.
+    Returns:
+        JSONResponse: A JSON response with a message indicating that the invitation was sent.
 
-    **Returns**
-
-    A JSON response with a message indicating that the invitation was sent.
-
-    **Raises**
-
-    * `HTTPException`: If the user is not authorized to send invitations or the organization does not exist.
+    Raises:
+        HTTPException: If the user is not authorized to send invitations or the organization does not exist.
     """
+
     if is_Owner(user["id"], invitation.org_id, db) or is_Admin(
         user["id"], invitation.org_id, db
     ):
@@ -355,7 +504,7 @@ async def send_invitation(
             link = (
                 f"http://127.0.0.1:8000/orgauth/member/accept_invitation/{invite_token}"
             )
-            await send_mail(invitation.email, user_detail.username, link, "Invitation")
+            await send_mail(invitation.email, user_detail.username, link, "Invite")
 
         else:
             raise HTTPException(
@@ -368,7 +517,9 @@ async def send_invitation(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You are not authorized to send invitations",
         )
-    return JSONResponse(status_code=200, content={"message": "Invitation sent"})
+    return JSONResponse(
+        status_code=200, content={"message": "Invitation sent", "token": invite_token}
+    )
 
 
 @router.get("/member/accept_invitation/{invite_token}")
@@ -378,25 +529,25 @@ async def accept_invitation(
     user: user_dependency,
 ):
     """
-    Accept an invitation.
+    Accept an invitation to join an organization.
 
-    This endpoint allows a user to accept an invitation to an organization.
+    This function accepts an invitation to join an organization, by validating the invite token and adding the user to the organization.
 
-    **Parameters**
+    Parameters:
+        invite_token (str): The invite token sent to the user in the invitation email.
+        db (db_dependency): The database session.
+        user (user_dependency): The current user.
 
-    * `invitation_id`: The ID of the invitation to accept.
-    * `db`: The database session.
-    * `user`: The current user.
+    Returns:
+        JSONResponse: A response indicating that the invitation was accepted.
 
-    **Returns**
-
-    A JSON response with a message indicating that the invitation was accepted.
-
-    **Raises**
-
-    * `HTTPException`: If the invitation does not exist or the user is not authorized to accept the invitation.
+    Raises:
+        HTTPException: If the invite token is invalid, or if the user is not authorized to join the organization.
     """
-    invitation = db.query(Invitation).filter(Invitation.token == invite_token).first()
+
+    invitation = (
+        db.query(Invitation).filter(Invitation.invite_token == invite_token).first()
+    )
     user_data = db.query(User).filter(User.id == user["id"]).first()
     if invitation is not None:
         if user_data is not None:
@@ -418,6 +569,11 @@ async def accept_invitation(
                         status_code=status.HTTP_404_NOT_FOUND,
                         detail="Organization does not exist",
                     )
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You are not allowed to accept this invitation",
+                )
         else:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

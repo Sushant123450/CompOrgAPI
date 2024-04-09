@@ -3,7 +3,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from fastapi import FastAPI
 from model import User, Organization, UserOrganization, Invitation
-from auth import get_current_user, create_access_token
+from auth import get_current_user, create_access_token, get_db
 from starlette import status
 from pydantic import EmailStr, BaseModel
 import orgauth
@@ -21,20 +21,13 @@ app = FastAPI()
 app.include_router(auth.router)
 app.include_router(orgauth.router)
 
-
 # Create tables
 Base.metadata.create_all(bind=engine)
 
 
-# Dependency to get the database session
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
+# All these enpoints for Testing purposes
+###################################################################################################################################################
+'''
 # Pydantic model for request data
 class UserCreate(BaseModel):
     username: str
@@ -55,67 +48,124 @@ db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(get_current_user)]
 
 
-# @app.get("/", status_code=status.HTTP_200_OK)
-# async def login(user: user_dependency, db: db_dependency):
-#     if user is None:
-#         raise HTTPException(status_code=401, detail="Authentication Failed")
-#     return {"User": user}
-
-
-@app.post("/token-refresh")
-async def refresh_token(user: user_dependency):
-    access_token_expires = timedelta(minutes=30)
-    access_token = create_access_token(
-        user["username"], user["id"], expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
-
-
+# Query all records from table 'User'
 @app.get("/all/user")
 async def list_All_Users(db: db_dependency):
-    # Query all records from table 'users'
+    """
+    Returns a list of all users in the database.
+
+    Args:
+        db (Session): The database session.
+
+    Returns:
+        List[User]: A list of all users in the database.
+    """
     users = db.query(User)
     user_list = [i for i in users]
-
     return user_list
 
 
+# Query all records from table 'Organization'
 @app.get("/all/org")
 async def list_All_Organizations(db: db_dependency):
-    # Query all records from table 'organization'
+    """
+    Returns a list of all users in the database.
+
+    Args:
+        db (Session): The database session.
+
+    Returns:
+        List[User]: A list of all users in the database.
+    """
+
     orgs = db.query(Organization)
     orgs_list = [i for i in orgs]
 
     return orgs_list
 
 
+# Query all records from table 'Association'
 @app.get("/all/association")
 async def list_All_Association(db: db_dependency):
-    # Query all records from table 'users'
+    """
+    Returns a list of all associations between users and organizations in the database.
+
+    Args:
+        db (Session): The database session.
+
+    Returns:
+        List[UserOrganization]: A list of all associations between users and organizations in the database.
+    """
     Assoc = db.query(UserOrganization)
     Assoc_list = [i for i in Assoc]
 
     return Assoc_list
 
 
+# Query all records from table 'Invitation'
+@app.get("/all/invitaion")
+async def list_All_Invitation(db: db_dependency):
+    """
+    Returns a list of all Invitation sent to users .
+
+    Args:
+        db (Session): The database session.
+
+    Returns:
+        List[Invitation]: A list of all associations between users and organizations in the database.
+    """
+    Invites = db.query(Invitation)
+    Invite_list = [i for i in Invites]
+
+    return Invite_list
+
+
+# Delete all records from table 'User'
 @app.get("/all/user/delete")
 async def delete_All_User(db: db_dependency):
+    """
+    Deletes all users from the database.
 
+    Args:
+        db (Session): The database session.
+    """
     Assoc = db.query(Organization).delete()
     db.commit()
     return {"response": f"{Assoc} user deleted"}
 
 
+# Delete all records from table 'Organization'
 @app.get("/all/org/delete")
 async def delete_All_Organization(db: db_dependency):
+    """
+    Deletes all organizations and their associations from the database.
+
+    Args:
+        db (Session): The database session.
+
+    Returns:
+        Dict[str, int]: A dictionary containing the number of organizations and associations deleted.
+    """
     Org = db.query(Organization).delete()
     Assoc = db.query(UserOrganization).delete()
     db.commit()
     return {"response": f"{Org} org and {Assoc}assoc deleted"}
 
 
+# Delete all records from table 'Invitations'
 @app.get("/all/invite/delete")
 async def delete_All_Invitation(db: db_dependency):
+    """
+    Deletes all invitations from the database.
+
+    Args:
+        db (Session): The database session.
+
+    Returns:
+        Dict[str, int]: A dictionary containing the number of invitations deleted.
+    """
     Invites = db.query(Invitation).delete()
     db.commit()
     return {"response": f"{Invites} invites deleted"}
+
+'''

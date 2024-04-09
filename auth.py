@@ -15,21 +15,28 @@ from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+
 SECRET_KEY = "98c49823694c2n34nx23423m4234n02384207394n023049"
 ALGORITHM = "HS256"
 
+
+# Email Configuration Details
 conf = ConnectionConfig(
-    MAIL_USERNAME="Sushant123450.sk@gmail.com",
-    MAIL_PASSWORD="hxha ixew ebur urot",
-    MAIL_FROM="Sushant123450.sk@gmail.com",
-    MAIL_PORT=465,
-    MAIL_SERVER="smtp.gmail.com",
+    MAIL_USERNAME="Sushant123450.sk@gmail.com",  # Email Address of Sender (Yes,Username hold the Email address)
+    MAIL_PASSWORD="hxha ixew ebur urot",  # App Password of Sender (Create App Password for gmail here : https://myaccount.google.com/apppasswords)
+    MAIL_FROM="Sushant123450.sk@gmail.com",  # Name of Sender
+    MAIL_PORT=465,  # Mail Port
+    MAIL_SERVER="smtp.gmail.com",  # Mail Server
     MAIL_STARTTLS=False,
     MAIL_SSL_TLS=True,
 )
 
-bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_bearer = OAuth2PasswordBearer(tokenUrl="auth/token")
+bcrypt_context = CryptContext(
+    schemes=["bcrypt"], deprecated="auto"
+)  # Password Hashing and Validation
+oauth2_bearer = OAuth2PasswordBearer(
+    tokenUrl="auth/token"
+)  # Holds the current Logined Users Details to be used as dependency
 
 
 class UserResponse(BaseModel):
@@ -61,6 +68,9 @@ class Token(BaseModel):
 
 
 def get_db():
+    """
+    To Get the current Database Session
+    """
     db = SessionLocal()
     try:
         yield db
@@ -69,6 +79,20 @@ def get_db():
 
 
 def authenticate_user(username: str, password: str, db):
+    """
+    Authenticates a user based on their username and password.
+
+    Args:
+        username (str): The username of the user.
+        password (str): The password of the user.
+        db (Session): The database session.
+
+    Returns:
+        Union[User, Dict[str, str]]: The user object if the authentication is successful, or a dictionary containing an error message.
+
+    Raises:
+        HTTPException: If the authentication fails.
+    """
     user = db.query(User).filter(User.username == username).first()
     if not user:
         return {"error": "User Not Found"}
@@ -82,6 +106,16 @@ def authenticate_user(username: str, password: str, db):
 def create_access_token(
     username: Column[str], user_id: Column[int], expires_delta: timedelta
 ):
+    """
+    Creates a signed access token for the given user.
+    Args:
+        username (str): The username of the user.
+        user_id (int): The user ID of the user.
+        expires_delta (datetime.timedelta): The amount of time the token should
+            be valid for.
+    Returns:
+        str: The access token.
+    """
     encode = {"sub": username, "id": user_id}
     expires = datetime.utcnow() + expires_delta
     encode.update({"exp": expires})
@@ -89,11 +123,36 @@ def create_access_token(
 
 
 def token_decode(token: str):
+    """
+    Decodes a JWT token and returns the payload.
+
+    Args:
+        token (str): The JWT token to be decoded.
+
+    Returns:
+        username , user_id: The decoded JWT payload.
+
+    Raises:
+        JWTError: If the token is invalid or expired.
+    """
     payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     return payload.get("sub"), payload.get("id")
 
 
 async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
+    """
+    Get the currently logged in user based on the access token.
+
+    Args:
+        token (str or oauth2_bearer Dependency): The access token of the currently logged in user.
+
+    Returns:
+        dict: A dictionary containing the user id and username of the currently
+        logged in user.
+
+    Raises:
+        HTTPException: If the access token is invalid or expired.
+    """
     try:
         username, user_id = token_decode(token)
         if username is None or user_id is None:
@@ -109,10 +168,27 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
         )
 
 
-@router.post("/revalidate-token")
-async def revalidate_token(token: str = Depends(oauth2_bearer)):
+@router.post("/refresh-token")
+async def refresh_token(token: str = Depends(oauth2_bearer)):
+    """
+    This function is used to refresh the access token.
+
+    Args:
+        token : (str or oauth2_bearer Dependency): The access token of the user.
+
+    Returns:
+        JSON: The new access token and the token type.
+
+    Raises:
+        HTTPException: If the access token is invalid or expired.
+    """
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(
+            token,
+            SECRET_KEY,
+            algorithms=[ALGORITHM],
+            options={"ignore_expiration": True},
+        )
         username = payload.get("sub")
         user_id = payload.get("id")
 
@@ -133,6 +209,22 @@ async def revalidate_token(token: str = Depends(oauth2_bearer)):
 
 
 async def send_mail(email: EmailStr, username: Column[str], link: str, type: str):
+    """
+    This function is used to send an email to the user with the verification link.
+
+    Args:
+        email (EmailStr): The email address of the user.
+        username (Column[str]): The username of the user.
+        link (str): The verification link.
+        type (str): The type of email to be sent. (Verification, Forgot, Invite)
+
+    Returns:
+        JSONResponse: A JSON response with a message indicating that the email has been sent.
+
+    Raises:
+        HTTPException: If the email cannot be sent.
+    """
+
     if type == "Verification":
         template = f"""
             <html><head>
@@ -179,6 +271,11 @@ async def send_mail(email: EmailStr, username: Column[str], link: str, type: str
             body=template,
             subtype=MessageType.html,
         )
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Could not send mail.",
+        )
 
     fm = FastMail(conf)
     await fm.send_message(message)
@@ -194,6 +291,21 @@ async def register_user(
     input: UserResponse,
     db: Session = Depends(get_db),
 ):
+    """
+    This function is used to register a new user by sending verification link to email.
+
+    Args:
+        request (Request): The request object.
+        input (UserResponse): The user input data.
+        db (Session): The database session.
+
+    Returns:
+        JSONResponse: A JSON response with the user details and token.
+
+    Raises:
+        HTTPException: If the passwords do not match or if there is an error while registering the user.
+    """
+
     hashed_confirm_password = bcrypt_context.hash(input.confirm_password)
     if bcrypt_context.verify(input.password, hashed_confirm_password):
         create_user_model = User(
@@ -213,9 +325,9 @@ async def register_user(
         await send_mail(str(email), username, link, "Verification")
 
     else:
-        return JSONResponse(
-            status_code=406,
-            content={
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={
                 "message": "Both Passwords Doesn't match. Try again",
             },
         )
@@ -226,7 +338,7 @@ async def register_user(
             "message": "User registered successfully",
             "username": create_user_model.username,
             "email": create_user_model.email,
-            "token": link,
+            "token": token,
             "id": id,
             "isVerified": create_user_model.isVerified,
         },
@@ -235,6 +347,20 @@ async def register_user(
 
 @router.get("/verify")
 async def verify(request: Request, db: db_dependency, token: str):
+    """
+    This function is used to verify the user account.
+
+    Args:
+        request (Request): The request object.
+        db (Session): The database session.
+        token (str): The access token of the user.
+
+    Returns:
+        JSONResponse: A JSON response with the message "You account is verified".
+
+    Raises:
+        HTTPException: If the access token is invalid or expired.
+    """
     try:
         username, user_id = token_decode(token)
 
@@ -249,26 +375,45 @@ async def verify(request: Request, db: db_dependency, token: str):
                 user.isVerified = True
                 db.commit()
     except JWTError:
-        raise HTTPException(status_code=status.HTTP_402_UNAUTHORIZED, detail="JWTError")
+        raise HTTPException(
+            status_code=status.HTTP_402_UNAUTHORIZED,
+            detail="Access token is invalid or expired.",
+        )
     return JSONResponse(
         status_code=200,
         content={"token": token, "message": "You account is verified"},
     )
 
 
-@router.post("/token")  # , response_model=Token)
+@router.post("/token")
 async def Login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: db_dependency
 ):
+    """
+    User login endpoint to generate an access token for API access.
+
+    Args:
+        form_data: OAuth2PasswordRequestForm data containing username and password. (Depends)
+        db: Database session object for user authentication. (Depends)
+
+    Raises:
+        HTTPException: 401 Unauthorized if credentials are invalid.
+
+    Returns:
+        Token: A dictionary containing the access token and token type ("bearer").
+
+    """
     user = authenticate_user(form_data.username, form_data.password, db)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate user."
         )
-    if type(user) == dict:
+    elif type(user) == dict:
         return user
-    if user:
+    elif user:
         token = create_access_token(user.username, user.id, timedelta(minutes=20))
+        print("User ID", user.id)
+        print("User Name", user.username)
         return {"access_token": token, "token_type": "bearer"}
 
 
@@ -276,6 +421,21 @@ async def Login_for_access_token(
 async def forgot_password(
     db: db_dependency, request: Request, ForgotPassword: ForgotPasswordRequest
 ):
+    """
+    This function is used to reset the user password.
+
+    Args:
+        db (Session): The database session.
+        request (Request): The request object.
+        ForgotPassword (ForgotPasswordRequest): The forgot password request data.
+
+    Returns:
+        JSONResponse: A JSON response with the message "Email has sent to your registered mail id".
+
+    Raises:
+        HTTPException: If the email cannot be sent.
+    """
+
     User_email = ForgotPassword.email
     User_username = ForgotPassword.username
     result = (
@@ -297,6 +457,21 @@ async def forgot_password(
 async def email_forgot_password(
     request: Request, db: db_dependency, token: str, NewPass: NewPasswordRequest
 ):
+    """
+    This function is used to reset the user password.
+
+    Args:
+        request (Request): The request object.
+        db (Session): The database session.
+        token (str): The access token of the user.
+        NewPass (NewPasswordRequest): The new password request data.
+
+    Returns:
+        JSONResponse: A JSON response with the message "Password is resetted".
+
+    Raises:
+        HTTPException: If there is an error while resetting the password.
+    """
     try:
         username, user_id = token_decode(token)
         if username is None or user_id is None:
@@ -322,7 +497,9 @@ async def email_forgot_password(
                     status_code=status.HTTP_404_NOT_FOUND, detail="User Not Found"
                 )
     except JWTError:
-        raise HTTPException(status_code=status.HTTP_402_UNAUTHORIZED, detail="JWTError")
+        raise HTTPException(
+            status_code=status.HTTP_402_UNAUTHORIZED, detail="Token is expired"
+        )
     return JSONResponse(
         status_code=200,
         content={"token": token, "message": "Password is resetted"},
