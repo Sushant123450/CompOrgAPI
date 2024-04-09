@@ -23,7 +23,7 @@ ALGORITHM = "HS256"
 # Email Configuration Details
 conf = ConnectionConfig(
     MAIL_USERNAME="Sushant123450.sk@gmail.com",  # Email Address of Sender (Yes,Username hold the Email address)
-    MAIL_PASSWORD="hxha ixew ebur urot",  # App Password of Sender (Create App Password for gmail here : https://myaccount.google.com/apppasswords)
+    MAIL_PASSWORD="",  # App Password of Sender (Create App Password for gmail here : https://myaccount.google.com/apppasswords)
     MAIL_FROM="Sushant123450.sk@gmail.com",  # Name of Sender
     MAIL_PORT=465,  # Mail Port
     MAIL_SERVER="smtp.gmail.com",  # Mail Server
