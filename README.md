@@ -40,7 +40,8 @@ These are the steps to set up this API
 ## NOTE:-
     * install Requiremnt specified version Bycrpt module as new version is not supportted by this project 
 
-# FastAPI Documention 
+# FastAPI Documention and Testing
 
-* FastAPI OpenAPI Documentaton can be accessed on endpoint `/docs` or `/redocs`
+* FastAPI OpenAPI Documentaton can be accessed on endpoint `/docs` or `/redocs` 
 * Or can be accessed by `CompOrgAPI_documentation.json` in repository
+* API endpoints can also be tested on endpoint `/docs` or `/redocs` 
