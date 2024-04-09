@@ -1,0 +1,984 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "FastAPI",
+        "version": "0.1.0"
+    },
+    "paths": {
+        "/auth/refresh-token": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Refresh Token",
+                "description": "This function is used to refresh the access token.\n\nArgs:\n    token : (str or oauth2_bearer Dependency): The access token of the user.\n\nReturns:\n    JSON: The new access token and the token type.\n\nRaises:\n    HTTPException: If the access token is invalid or expired.",
+                "operationId": "refresh_token_auth_refresh_token_post",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ]
+            }
+        },
+        "/auth/register/": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Register User",
+                "description": "This function is used to register a new user by sending verification link to email.\n\nArgs:\n    request (Request): The request object.\n    input (UserResponse): The user input data.\n    db (Session): The database session.\n\nReturns:\n    JSONResponse: A JSON response with the user details and token.\n\nRaises:\n    HTTPException: If the passwords do not match or if there is an error while registering the user.",
+                "operationId": "register_user_auth_register__post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UserResponse"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/verify": {
+            "get": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Verify",
+                "description": "This function is used to verify the user account.\n\nArgs:\n    request (Request): The request object.\n    db (Session): The database session.\n    token (str): The access token of the user.\n\nReturns:\n    JSONResponse: A JSON response with the message \"You account is verified\".\n\nRaises:\n    HTTPException: If the access token is invalid or expired.",
+                "operationId": "verify_auth_verify_get",
+                "parameters": [
+                    {
+                        "name": "token",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Token"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/token": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Login For Access Token",
+                "description": "User login endpoint to generate an access token for API access.\n\nArgs:\n    form_data: OAuth2PasswordRequestForm data containing username and password. (Depends)\n    db: Database session object for user authentication. (Depends)\n\nRaises:\n    HTTPException: 401 Unauthorized if credentials are invalid.\n\nReturns:\n    Token: A dictionary containing the access token and token type (\"bearer\").",
+                "operationId": "Login_for_access_token_auth_token_post",
+                "requestBody": {
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Body_Login_for_access_token_auth_token_post"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/forgot-password/": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Forgot Password",
+                "description": "This function is used to reset the user password.\n\nArgs:\n    db (Session): The database session.\n    request (Request): The request object.\n    ForgotPassword (ForgotPasswordRequest): The forgot password request data.\n\nReturns:\n    JSONResponse: A JSON response with the message \"Email has sent to your registered mail id\".\n\nRaises:\n    HTTPException: If the email cannot be sent.",
+                "operationId": "forgot_password_auth_forgot_password__post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ForgotPasswordRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/reset-password/": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Email Forgot Password",
+                "description": "This function is used to reset the user password.\n\nArgs:\n    request (Request): The request object.\n    db (Session): The database session.\n    token (str): The access token of the user.\n    NewPass (NewPasswordRequest): The new password request data.\n\nReturns:\n    JSONResponse: A JSON response with the message \"Password is resetted\".\n\nRaises:\n    HTTPException: If there is an error while resetting the password.",
+                "operationId": "email_forgot_password_auth_reset_password__post",
+                "parameters": [
+                    {
+                        "name": "token",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Token"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/NewPasswordRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/orgauth/org/register": {
+            "post": {
+                "tags": [
+                    "orgauth"
+                ],
+                "summary": "Register Organization",
+                "description": "Register a new organization.\n\nThis endpoint allows a user to register a new organization.\n\nParameters:\n    request (Request): The request object.\n    organization (RegisterOrganization): The organization details.\n    user (user_dependency): The current user.\n    db (db_dependency): The database session.\n\nReturns:\n    JSONResponse: The registered organization.\n\nRaises:\n    HTTPException: If the organization already exists or an error occurs.",
+                "operationId": "register_organization_orgauth_org_register_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RegisterOrganization"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ]
+            }
+        },
+        "/orgauth/org": {
+            "get": {
+                "tags": [
+                    "orgauth"
+                ],
+                "summary": "List All Organizations",
+                "description": "Returns a list of all organizations in the database.\n\nParameters:\n    db (db_dependency): The database session.\n\nReturns:\n    List[Organization]: A list of all organizations in the database.",
+                "operationId": "list_All_Organizations_orgauth_org_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/orgauth/org/{org_id}": {
+            "get": {
+                "tags": [
+                    "orgauth"
+                ],
+                "summary": "Get Organization Details",
+                "description": "Returns the details of an organization with the given ID.\n\nParameters:\n    request (Request): The request object.\n    db (db_dependency): The database session.\n    org_id (int): The ID of the organization.\n\nReturns:\n    JSONResponse: The organization details.\n\nRaises:\n    HTTPException: If the organization with the given ID does not exist.",
+                "operationId": "get_organization_details_orgauth_org__org_id__get",
+                "parameters": [
+                    {
+                        "name": "org_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "title": "Org Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/orgauth/org/{org_id}/update": {
+            "put": {
+                "tags": [
+                    "orgauth"
+                ],
+                "summary": "Update Organization",
+                "description": "Update an organization.\n\nThis function updates an organization with the given details.\n\nParameters:\n    org_id (int): The ID of the organization to update.\n    organization (UpdateOrganization): The details to update the organization with.\n    user (user_dependency): The current user.\n    db (db_dependency): The database session.\n\nReturns:\n    JSONResponse: A response indicating that the organization was updated.\n\nRaises:\n    HTTPException: If the user is not authorized to update the organization, or if the organization does not exist.",
+                "operationId": "update_organization_orgauth_org__org_id__update_put",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "org_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "title": "Org Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateOrganization"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/orgauth/org/{org_id}/delete": {
+            "post": {
+                "tags": [
+                    "orgauth"
+                ],
+                "summary": "Delete Organization",
+                "description": "Deletes an organization and all its associated data.\n\nArgs:\n    db (db_dependency): The database session.\n    org_id (int): The ID of the organization to delete.\n    user (user_dependency): The current user.\n\nRaises:\n    HTTPException: If the user is not authorized to delete the organization.\n\nReturns:\n    JSONResponse: A response indicating that the organization was deleted.",
+                "operationId": "delete_organization_orgauth_org__org_id__delete_post",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "org_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "title": "Org Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/orgauth/org/{org_id}/member/add": {
+            "post": {
+                "tags": [
+                    "orgauth"
+                ],
+                "summary": "Add Member To Org",
+                "description": "Adds a member to an organization.\n\nThis function adds a member with the given member_id to the organization with the given org_id.\n\nParameters:\n    member_id (int): The ID of the member to add.\n    org_id (int): The ID of the organization to add the member to.\n    db (db_dependency): The database session.\n    user (user_dependency): The current user.\n    Admin (bool, optional): Whether the member is an administrator of the organization. Defaults to False.\n\nReturns:\n    JSONResponse: A response indicating that the member was added to the organization.\n\nRaises:\n    HTTPException: If the user is not authorized to add the member, or if the member or organization does not exist.",
+                "operationId": "add_member_to_org_orgauth_org__org_id__member_add_post",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "org_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "title": "Org Id"
+                        }
+                    },
+                    {
+                        "name": "member_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "title": "Member Id"
+                        }
+                    },
+                    {
+                        "name": "Admin",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean",
+                            "default": false,
+                            "title": "Admin"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/orgauth/org/{org_id}/member/delete": {
+            "post": {
+                "tags": [
+                    "orgauth"
+                ],
+                "summary": "Remove Member From Org",
+                "description": "Removes a member from an organization.\n\nThis function removes a member with the given member_id from the organization with the given org_id.\n\nParameters:\n    member_id (int): The ID of the member to remove.\n    org_id (int): The ID of the organization to remove the member from.\n    db (db_dependency): The database session.\n    user (user_dependency): The current user.\n\nReturns:\n    JSONResponse: A response indicating that the member was removed from the organization.\n\nRaises:\n    HTTPException: If the user is not authorized to remove the member, or if the member or organization does not exist.",
+                "operationId": "remove_member_from_org_orgauth_org__org_id__member_delete_post",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "org_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "title": "Org Id"
+                        }
+                    },
+                    {
+                        "name": "member_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "title": "Member Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/orgauth/org/{org_id}/members": {
+            "get": {
+                "tags": [
+                    "orgauth"
+                ],
+                "summary": "All Member Of Organization",
+                "description": "Returns a list of all members of an organization.\n\nParameters:\n    org_id (int): The ID of the organization.\n    db (db_dependency): The database session.\n\nReturns:\n    List[User_detail]: A list of all members of the organization.\n\nRaises:\n    HTTPException: If the organization does not exist.",
+                "operationId": "all_member_of_organization_orgauth_org__org_id__members_get",
+                "parameters": [
+                    {
+                        "name": "org_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "title": "Org Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/User_detail"
+                                    },
+                                    "title": "Response All Member Of Organization Orgauth Org  Org Id  Members Get"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/orgauth/org/invite": {
+            "post": {
+                "tags": [
+                    "orgauth"
+                ],
+                "summary": "Send Invitation",
+                "description": "Send an invitation email to a user.\n\nThis endpoint allows the owner or an administrator of an organization to send an invitation email to a user.\n\nParameters:\n    invitation (InvitationDetails): The invitation object containing the email of the user to invite and the ID of the organization to invite the user to.\n    db (db_dependency): The database session.\n    user (user_dependency): The current user.\n\nReturns:\n    JSONResponse: A JSON response with a message indicating that the invitation was sent.\n\nRaises:\n    HTTPException: If the user is not authorized to send invitations or the organization does not exist.",
+                "operationId": "send_invitation_orgauth_org_invite_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/InvitationDetails"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ]
+            }
+        },
+        "/orgauth/member/accept_invitation/{invite_token}": {
+            "get": {
+                "tags": [
+                    "orgauth"
+                ],
+                "summary": "Accept Invitation",
+                "description": "Accept an invitation to join an organization.\n\nThis function accepts an invitation to join an organization, by validating the invite token and adding the user to the organization.\n\nParameters:\n    invite_token (str): The invite token sent to the user in the invitation email.\n    db (db_dependency): The database session.\n    user (user_dependency): The current user.\n\nReturns:\n    JSONResponse: A response indicating that the invitation was accepted.\n\nRaises:\n    HTTPException: If the invite token is invalid, or if the user is not authorized to join the organization.",
+                "operationId": "accept_invitation_orgauth_member_accept_invitation__invite_token__get",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "invite_token",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Invite Token"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "Body_Login_for_access_token_auth_token_post": {
+                "properties": {
+                    "grant_type": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "pattern": "password"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Grant Type"
+                    },
+                    "username": {
+                        "type": "string",
+                        "title": "Username"
+                    },
+                    "password": {
+                        "type": "string",
+                        "title": "Password"
+                    },
+                    "scope": {
+                        "type": "string",
+                        "title": "Scope",
+                        "default": ""
+                    },
+                    "client_id": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Client Id"
+                    },
+                    "client_secret": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Client Secret"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "username",
+                    "password"
+                ],
+                "title": "Body_Login_for_access_token_auth_token_post"
+            },
+            "ForgotPasswordRequest": {
+                "properties": {
+                    "username": {
+                        "type": "string",
+                        "title": "Username"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "title": "Email"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "username",
+                    "email"
+                ],
+                "title": "ForgotPasswordRequest"
+            },
+            "HTTPValidationError": {
+                "properties": {
+                    "detail": {
+                        "items": {
+                            "$ref": "#/components/schemas/ValidationError"
+                        },
+                        "type": "array",
+                        "title": "Detail"
+                    }
+                },
+                "type": "object",
+                "title": "HTTPValidationError"
+            },
+            "InvitationDetails": {
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "title": "Email"
+                    },
+                    "org_id": {
+                        "type": "integer",
+                        "title": "Org Id"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "email",
+                    "org_id"
+                ],
+                "title": "InvitationDetails"
+            },
+            "NewPasswordRequest": {
+                "properties": {
+                    "NewPassword": {
+                        "type": "string",
+                        "title": "Newpassword"
+                    },
+                    "ConfirmNewPassword": {
+                        "type": "string",
+                        "title": "Confirmnewpassword"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "NewPassword",
+                    "ConfirmNewPassword"
+                ],
+                "title": "NewPasswordRequest"
+            },
+            "RegisterOrganization": {
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "title": "Name"
+                    },
+                    "description": {
+                        "type": "string",
+                        "title": "Description"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "name",
+                    "description"
+                ],
+                "title": "RegisterOrganization"
+            },
+            "UpdateOrganization": {
+                "properties": {
+                    "name": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Name"
+                    },
+                    "description": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Description"
+                    }
+                },
+                "type": "object",
+                "title": "UpdateOrganization"
+            },
+            "UserResponse": {
+                "properties": {
+                    "username": {
+                        "type": "string",
+                        "title": "Username"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "title": "Email"
+                    },
+                    "password": {
+                        "type": "string",
+                        "title": "Password"
+                    },
+                    "confirm_password": {
+                        "type": "string",
+                        "title": "Confirm Password"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "username",
+                    "email",
+                    "password",
+                    "confirm_password"
+                ],
+                "title": "UserResponse"
+            },
+            "User_detail": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "title": "Id"
+                    },
+                    "username": {
+                        "type": "string",
+                        "title": "Username"
+                    },
+                    "email": {
+                        "type": "string",
+                        "title": "Email"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "id",
+                    "username",
+                    "email"
+                ],
+                "title": "User_detail"
+            },
+            "ValidationError": {
+                "properties": {
+                    "loc": {
+                        "items": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "integer"
+                                }
+                            ]
+                        },
+                        "type": "array",
+                        "title": "Location"
+                    },
+                    "msg": {
+                        "type": "string",
+                        "title": "Message"
+                    },
+                    "type": {
+                        "type": "string",
+                        "title": "Error Type"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "loc",
+                    "msg",
+                    "type"
+                ],
+                "title": "ValidationError"
+            }
+        },
+        "securitySchemes": {
+            "OAuth2PasswordBearer": {
+                "type": "oauth2",
+                "flows": {
+                    "password": {
+                        "scopes": {},
+                        "tokenUrl": "auth/token"
+                    }
+                }
+            }
+        }
+    }
+}
